@@ -1,3 +1,4 @@
+// lib/services/auth_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -10,19 +11,35 @@ class AuthService {
   ) async {
     final url = Uri.parse('$baseUrl/login');
 
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
-    );
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'email': email, 'password': password}),
+      );
 
-    if (response.statusCode == 200) {
-      // berhasil login
-      final data = jsonDecode(response.body);
-      return {'success': true, 'data': data};
-    } else {
-      //gagal login
-      return {'success': false, 'message': 'Login gagal'};
+      final responseBody = jsonDecode(response.body);
+
+      // Directly return the parsed response body.
+      // AuthProvider will handle the 'meta' and 'data' keys.
+      return responseBody;
+    } catch (error) {
+      // Handle network errors or other exceptions
+      print("Login error: $error");
+      // Return a structure consistent with what AuthProvider might expect on error
+      return {
+        'meta': {
+          'success': false,
+          'code': 500, // Or some other error code
+          'message': 'An error occurred: ${error.toString()}',
+        },
+        'data': null,
+      };
     }
   }
+
+  // ... (fetchSomeData method remains the same conceptually)
 }
