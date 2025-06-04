@@ -6,12 +6,11 @@ import 'package:admin_batik/providers/auth_provider.dart';
 
 class ProductProvider with ChangeNotifier {
   final AuthProvider authProvider;
-  final ProductService _productService =
-      ProductService(); // Inisialisasi di sini
+  final ProductService _productService = ProductService();
 
   List<ProductModel> _products = [];
   bool _isLoading = false; // Untuk fetching list
-  bool _isAddingProduct = false; // Untuk status add product
+  bool _isSubmitting = false; // Untuk status add/update product
   String? _errorMessage;
   int _currentPage = 1;
   int _lastPage = 1;
@@ -21,7 +20,7 @@ class ProductProvider with ChangeNotifier {
 
   List<ProductModel> get products => _products;
   bool get isLoading => _isLoading;
-  bool get isAddingProduct => _isAddingProduct; // Getter untuk status add
+  bool get isSubmitting => _isSubmitting; // Mengganti isAddingProduct
   String? get errorMessage => _errorMessage;
   int get currentPage => _currentPage;
   int get lastPage => _lastPage;
@@ -88,11 +87,9 @@ class ProductProvider with ChangeNotifier {
       notifyListeners();
       return false;
     }
-
-    _isAddingProduct = true;
+    _isSubmitting = true; // Menggunakan _isSubmitting
     _errorMessage = null;
     notifyListeners();
-
     bool success = false;
     try {
       final response = await _productService.addProduct(
@@ -100,8 +97,6 @@ class ProductProvider with ChangeNotifier {
         productData,
       );
       if (response['meta']['success'] == true) {
-        // Produk berhasil ditambahkan
-        // Refresh daftar produk untuk menampilkan produk baru
         await fetchProducts(refresh: true);
         success = true;
       } else {
@@ -113,8 +108,49 @@ class ProductProvider with ChangeNotifier {
       print(_errorMessage);
       success = false;
     }
+    _isSubmitting = false; // Menggunakan _isSubmitting
+    notifyListeners();
+    return success;
+  }
 
-    _isAddingProduct = false;
+  Future<bool> updateProduct(
+    int productId,
+    Map<String, dynamic> productData,
+  ) async {
+    if (authProvider.token == null) {
+      _errorMessage = "Authentication token not found.";
+      notifyListeners();
+      return false;
+    }
+
+    _isSubmitting = true; // Menggunakan _isSubmitting
+    _errorMessage = null;
+    notifyListeners();
+
+    bool success = false;
+    try {
+      final response = await _productService.updateProduct(
+        authProvider.token!,
+        productId,
+        productData,
+      );
+      if (response['meta']['success'] == true) {
+        // Produk berhasil diupdate
+        // Refresh daftar produk untuk menampilkan perubahan
+        await fetchProducts(refresh: true);
+        success = true;
+      } else {
+        _errorMessage =
+            response['meta']['message'] ?? 'Failed to update product.';
+        success = false;
+      }
+    } catch (e) {
+      _errorMessage = 'An error occurred while updating product: $e';
+      print(_errorMessage);
+      success = false;
+    }
+
+    _isSubmitting = false; // Menggunakan _isSubmitting
     notifyListeners();
     return success;
   }

@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:admin_batik/providers/product_provider.dart';
 import 'package:admin_batik/models/product_model.dart';
-import 'package:admin_batik/screen/add_product_screen.dart'; // Impor AddProductScreen
+import 'package:admin_batik/screen/add_product_screen.dart';
+import 'package:admin_batik/screen/edit_product_screen.dart'; // Impor EditProductScreen
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 class ProductScreen extends StatefulWidget {
-  // ... (kode yang sudah ada)
   const ProductScreen({super.key});
 
   @override
@@ -16,7 +16,6 @@ class ProductScreen extends StatefulWidget {
 }
 
 class _ProductScreenState extends State<ProductScreen> {
-  // ... (kode initState, dispose, _formatPrice yang sudah ada)
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -28,6 +27,7 @@ class _ProductScreenState extends State<ProductScreen> {
         listen: false,
       ).fetchProducts(refresh: true),
     );
+
     _scrollController.addListener(() {
       if (_scrollController.position.pixels ==
           _scrollController.position.maxScrollExtent) {
@@ -80,8 +80,6 @@ class _ProductScreenState extends State<ProductScreen> {
                         builder: (context) => const AddProductScreen(),
                       ),
                     );
-                    // Atau jika menggunakan named routes:
-                    // Navigator.of(context).pushNamed(AddProductScreen.routeName);
                   },
                   icon: const Icon(Icons.add, size: 18),
                   label: Text(
@@ -103,7 +101,6 @@ class _ProductScreenState extends State<ProductScreen> {
               ],
             ),
           ),
-          // ... (sisa UI ListView.builder yang sudah ada)
           Expanded(
             child:
                 productProvider.isLoading && productProvider.products.isEmpty
@@ -166,7 +163,19 @@ class _ProductScreenState extends State<ProductScreen> {
                             return const SizedBox.shrink();
                           }
                           final product = productProvider.products[index];
-                          return _buildProductItem(product);
+                          return GestureDetector(
+                            // Tambahkan GestureDetector di sini
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) =>
+                                          EditProductScreen(product: product),
+                                ),
+                              );
+                            },
+                            child: _buildProductItem(product),
+                          );
                         },
                       ),
                     ),
@@ -176,8 +185,10 @@ class _ProductScreenState extends State<ProductScreen> {
     );
   }
 
-  // ... (_buildProductItem yang sudah ada)
   Widget _buildProductItem(ProductModel product) {
+    String? firstImage =
+        product.images.isNotEmpty ? product.images.first : null;
+
     return Card(
       elevation: 0.5,
       margin: const EdgeInsets.only(bottom: 12.0),
@@ -191,18 +202,67 @@ class _ProductScreenState extends State<ProductScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 70,
-              child: Text(
-                product.code,
-                style: GoogleFonts.crimsonPro(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.w500,
+            if (firstImage != null && firstImage.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(right: 12.0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4.0),
+                  child: Image.network(
+                    firstImage,
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 50,
+                        height: 50,
+                        color: Colors.grey.shade200,
+                        child: Icon(
+                          Icons.image_not_supported,
+                          size: 24,
+                          color: Colors.grey.shade400,
+                        ),
+                      );
+                    },
+                    loadingBuilder: (
+                      BuildContext context,
+                      Widget child,
+                      ImageChunkEvent? loadingProgress,
+                    ) {
+                      if (loadingProgress == null) return child;
+                      return SizedBox(
+                        width: 50,
+                        height: 50,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.0,
+                            color: const Color(0xFFA16C22),
+                            value:
+                                loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
+            if (firstImage == null || firstImage.isEmpty)
+              SizedBox(
+                width: 70,
+                child: Text(
+                  product.code,
+                  style: GoogleFonts.crimsonPro(
+                    fontSize: 12,
+                    color: Colors.grey.shade500,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            if (firstImage == null || firstImage.isEmpty)
+              const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,7 +333,7 @@ class _ProductScreenState extends State<ProductScreen> {
                   ),
                   decoration: BoxDecoration(
                     color:
-                        product.status.toLowerCase() == 'available'
+                        product.status.toLowerCase() == 'tersedia'
                             ? Colors.amber.shade100
                             : Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(12),
@@ -284,7 +344,7 @@ class _ProductScreenState extends State<ProductScreen> {
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                       color:
-                          product.status.toLowerCase() == 'available'
+                          product.status.toLowerCase() == 'tersedia'
                               ? Colors.amber.shade800
                               : Colors.grey.shade700,
                     ),

@@ -1,5 +1,6 @@
 // lib/main.dart
 import 'package:admin_batik/screen/add_product_screen.dart';
+import 'package:admin_batik/screen/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -61,11 +62,7 @@ class MyApp extends StatelessWidget {
       home: Consumer<AuthProvider>(
         builder: (ctx, auth, _) {
           if (auth.isInitializing) {
-            return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(color: Color(0xFFA16C22)),
-              ),
-            );
+            return const SplashScreen();
           } else if (auth.isAuthenticated) {
             return const MainLayoutScreen(); // Arahkan ke MainLayoutScreen
           } else {
