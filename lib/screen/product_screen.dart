@@ -1,4 +1,6 @@
 // lib/screen/product_screen.dart
+import 'package:admin_batik/models/product_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:admin_batik/providers/product_provider.dart';
@@ -21,12 +23,12 @@ class _ProductScreenState extends State<ProductScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(
-      () => Provider.of<ProductProvider>(
-        context,
-        listen: false,
-      ).fetchProducts(refresh: true),
-    );
+    // Future.microtask(
+    //   () => Provider.of<ProductProvider>(
+    //     context,
+    //     listen: false,
+    //   ).fetchProducts(refresh: true),
+    // );
 
     _scrollController.addListener(() {
       if (_scrollController.position.pixels ==
@@ -54,7 +56,10 @@ class _ProductScreenState extends State<ProductScreen> {
   @override
   Widget build(BuildContext context) {
     final productProvider = Provider.of<ProductProvider>(context);
-
+    print("productProvider.isLoading: ${productProvider.isLoading}");
+    print(
+      "productProvider.products.isEmpty: ${productProvider.products.isEmpty}",
+    );
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
@@ -148,6 +153,13 @@ class _ProductScreenState extends State<ProductScreen> {
                             productProvider.products.length +
                             (productProvider.hasMoreProducts ? 1 : 0),
                         itemBuilder: (context, index) {
+                          print("index: ${index}");
+                          print(
+                            "productProvider.products.length: ${productProvider.products.length}",
+                          );
+                          print(
+                            "productProvider.hasMoreProducts: ${productProvider.hasMoreProducts}",
+                          );
                           if (index == productProvider.products.length &&
                               productProvider.hasMoreProducts) {
                             return const Padding(
@@ -186,9 +198,11 @@ class _ProductScreenState extends State<ProductScreen> {
   }
 
   Widget _buildProductItem(ProductModel product) {
-    String? firstImage =
+    ProductImageModel? firstImage =
         product.images.isNotEmpty ? product.images.first : null;
 
+    // print("product.images.first${product.images.first.fullImageUrl}");
+    // print(firstImage?.fullImageUrl);
     return Card(
       elevation: 0.5,
       margin: const EdgeInsets.only(bottom: 12.0),
@@ -202,54 +216,48 @@ class _ProductScreenState extends State<ProductScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (firstImage != null && firstImage.isNotEmpty)
+            if (firstImage != null)
               Padding(
                 padding: const EdgeInsets.only(right: 12.0),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4.0),
-                  child: Image.network(
-                    firstImage,
+                  // GANTI Image.network DENGAN INI
+                  child: CachedNetworkImage(
+                    imageUrl: firstImage.fullImageUrl,
                     width: 50,
                     height: 50,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 50,
-                        height: 50,
-                        color: Colors.grey.shade200,
-                        child: Icon(
-                          Icons.image_not_supported,
-                          size: 24,
-                          color: Colors.grey.shade400,
-                        ),
-                      );
-                    },
-                    loadingBuilder: (
-                      BuildContext context,
-                      Widget child,
-                      ImageChunkEvent? loadingProgress,
-                    ) {
-                      if (loadingProgress == null) return child;
-                      return SizedBox(
-                        width: 50,
-                        height: 50,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.0,
-                            color: const Color(0xFFA16C22),
-                            value:
-                                loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                    : null,
+                    placeholder:
+                        (context, url) => Container(
+                          width: 50,
+                          height: 50,
+                          color: Colors.grey.shade200,
+                          child: const Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.0,
+                                color: Color(0xFFA16C22),
+                              ),
+                            ),
                           ),
                         ),
-                      );
-                    },
+                    errorWidget:
+                        (context, url, error) => Container(
+                          width: 50,
+                          height: 50,
+                          color: Colors.grey.shade200,
+                          child: Icon(
+                            Icons.error_outline,
+                            color: Colors.red.shade400,
+                            size: 24,
+                          ),
+                        ),
                   ),
                 ),
               ),
-            if (firstImage == null || firstImage.isEmpty)
+            if (firstImage == null)
               SizedBox(
                 width: 70,
                 child: Text(
@@ -261,8 +269,7 @@ class _ProductScreenState extends State<ProductScreen> {
                   ),
                 ),
               ),
-            if (firstImage == null || firstImage.isEmpty)
-              const SizedBox(width: 12),
+            if (firstImage == null) const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

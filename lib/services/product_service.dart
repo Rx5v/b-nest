@@ -3,12 +3,12 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ProductService {
-  static const String _baseUrl = 'http://10.0.2.2:8000/api/admin';
+  static const String _baseUrl = 'http://192.168.157.232:8000/api/admin';
 
   Future<Map<String, dynamic>> getProducts(String token, {int page = 1}) async {
-    // ... (method getProducts yang sudah ada)
     final url = Uri.parse('$_baseUrl/products?page=$page');
     print('Fetching products from: $url');
+
     try {
       final response = await http.get(
         url,
@@ -18,9 +18,11 @@ class ProductService {
           'Authorization': 'Bearer $token',
         },
       );
-      final responseBody = jsonDecode(response.body);
-      print('Product Response Body: $responseBody');
-      return responseBody;
+
+      print('Get Products Raw Response: ${response.body}');
+      // SOLUSI: Bersihkan body sebelum parsing
+      final cleanBody = response.body.trim();
+      return jsonDecode(cleanBody);
     } catch (e) {
       print('Error fetching products: $e');
       return {
@@ -36,31 +38,38 @@ class ProductService {
 
   Future<Map<String, dynamic>> addProduct(
     String token,
-    Map<String, dynamic> productData,
+    Map<String, String> fields,
+    List<String> imagePaths,
   ) async {
-    // ... (method addProduct yang sudah ada)
     final url = Uri.parse('$_baseUrl/products');
-    print('Adding product to: $url with data: $productData');
+    print('Adding product (multipart) to: $url');
+
     try {
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(productData),
-      );
-      final responseBody = jsonDecode(response.body);
-      print('Add Product Response Body: $responseBody');
-      return responseBody;
+      var request = http.MultipartRequest('POST', url);
+      request.headers.addAll({
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      });
+      request.fields.addAll(fields);
+
+      for (var path in imagePaths) {
+        request.files.add(await http.MultipartFile.fromPath('images[]', path));
+      }
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      print('Add Product Raw Response: ${response.body}');
+      // SOLUSI: Bersihkan body sebelum parsing
+      final cleanBody = response.body.trim();
+      return jsonDecode(cleanBody);
     } catch (e) {
       print('Error adding product: $e');
       return {
         'meta': {
           'success': false,
           'code': 500,
-          'message': 'An error occurred while adding product: ${e.toString()}',
+          'message': 'An error occurred: ${e.toString()}',
         },
         'data': null,
       };
@@ -70,34 +79,42 @@ class ProductService {
   Future<Map<String, dynamic>> updateProduct(
     String token,
     int productId,
-    Map<String, dynamic> productData,
+    Map<String, String> fields,
+    List<String> newImagePaths,
   ) async {
-    final url = Uri.parse('$_baseUrl/products'); // Menggunakan ID produk di URL
-    print('Updating product $productId at: $url with data: $productData');
+    final url = Uri.parse('$_baseUrl/products/$productId');
+    print('Updating product $productId (multipart)');
 
     try {
-      final response = await http.put(
-        // Menggunakan method PUT
+      var request = http.MultipartRequest(
+        'POST',
         url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(productData),
-      );
+      ); // Gunakan POST dengan _method override
+      request.headers.addAll({
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      });
+      request.fields.addAll(fields);
+      request.fields['_method'] = 'PUT';
 
-      final responseBody = jsonDecode(response.body);
-      print('Update Product Response Body: $responseBody');
-      return responseBody;
+      for (var path in newImagePaths) {
+        request.files.add(await http.MultipartFile.fromPath('images[]', path));
+      }
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      print('Update Product Raw Response: ${response.body}');
+      // SOLUSI: Bersihkan body sebelum parsing
+      final cleanBody = response.body.trim();
+      return jsonDecode(cleanBody);
     } catch (e) {
-      print('Error updating product $productId: $e');
+      print('Error updating product: $e');
       return {
         'meta': {
           'success': false,
           'code': 500,
-          'message':
-              'An error occurred while updating product: ${e.toString()}',
+          'message': 'An error occurred: ${e.toString()}',
         },
         'data': null,
       };

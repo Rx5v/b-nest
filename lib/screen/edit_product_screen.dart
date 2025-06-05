@@ -1,13 +1,15 @@
 // lib/screen/edit_product_screen.dart
+import 'dart:io';
+import 'package:admin_batik/models/product_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:admin_batik/providers/product_provider.dart';
 import 'package:admin_batik/models/product_model.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 class EditProductScreen extends StatefulWidget {
-  static const routeName = '/edit-product';
-  final ProductModel product; // Produk yang akan diedit
+  final ProductModel product;
 
   const EditProductScreen({super.key, required this.product});
 
@@ -19,72 +21,82 @@ class _EditProductScreenState extends State<EditProductScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
-  // Controller untuk setiap field
+  // Controllers
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   late TextEditingController _priceController;
-  late TextEditingController _batikTypeController; // subCategory
-  late TextEditingController _imageUrlController;
+  late TextEditingController _batikTypeController;
   late TextEditingController _codeController;
   late TextEditingController _stockController;
 
+  // State untuk dropdowns
   String? _selectedCategory;
   String? _selectedStatus;
 
+  // State untuk gambar
+  final ImagePicker _picker = ImagePicker();
+  List<XFile> _newSelectedImages = [];
+  List<ProductImageModel> _existingImages = [];
   final List<String> _categories = ['Kain', 'Kaos', 'Kemeja'];
-  // Sesuaikan nilai status ini dengan yang ada di API atau yang valid
   final List<String> _statuses = ['Tersedia', 'Tidak Tersedia'];
 
   @override
   void initState() {
     super.initState();
-    // Inisialisasi controller dengan data produk yang ada
+    // Inisialisasi form dengan data produk yang ada
     _nameController = TextEditingController(text: widget.product.name);
     _descriptionController = TextEditingController(
       text: widget.product.description,
     );
     _priceController = TextEditingController(
       text: widget.product.priceAsDouble.toStringAsFixed(0),
-    ); // Harga tanpa desimal
+    );
     _batikTypeController = TextEditingController(
       text: widget.product.batikType,
-    );
-    // Menggabungkan list URL gambar menjadi satu string dipisahkan koma untuk diedit di TextField
-    _imageUrlController = TextEditingController(
-      text: widget.product.images.join(', '),
     );
     _codeController = TextEditingController(text: widget.product.code);
     _stockController = TextEditingController(
       text: widget.product.stock.toString(),
     );
-
     _selectedCategory = widget.product.category;
-    // Pastikan nilai status dari produk ada dalam list _statuses
-    if (_statuses.contains(widget.product.status)) {
-      _selectedStatus = widget.product.status;
-    } else if (widget.product.status.toLowerCase() == "available" &&
-        _statuses.contains("Tersedia")) {
-      _selectedStatus = "Tersedia"; // Fallback jika case berbeda
-    } else if (widget.product.status.toLowerCase() == "not available" &&
-        _statuses.contains("Tidak Tersedia")) {
-      _selectedStatus = "Tidak Tersedia"; // Fallback
-    }
-    // Jika kategori produk tidak ada di list, bisa set default atau biarkan null (akan tampilkan hint)
-    if (!_categories.contains(widget.product.category)) {
-      _selectedCategory = null; // Atau _categories.first jika ingin ada default
-    }
+    _selectedStatus = widget.product.status;
+    _existingImages = List<ProductImageModel>.from(widget.product.images);
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _descriptionController.dispose();
-    _priceController.dispose();
-    _batikTypeController.dispose();
-    _imageUrlController.dispose();
-    _codeController.dispose();
-    _stockController.dispose();
+    // ... dispose semua controller
     super.dispose();
+  }
+
+  Future<void> _pickImages() async {
+    try {
+      final List<XFile> pickedFiles = await _picker.pickMultiImage();
+      if (pickedFiles.isNotEmpty) {
+        setState(() {
+          _newSelectedImages.addAll(pickedFiles);
+        });
+      }
+    } catch (e) {
+      print("Error picking images: $e");
+    }
+  }
+
+  void _removeNewImage(int index) {
+    setState(() {
+      _newSelectedImages.removeAt(index);
+    });
+  }
+
+  void _removeExistingImage(int index) {
+    setState(() {
+      // NOTE: This only removes the image from the UI for now.
+      // The actual deletion on the server requires a specific API call
+      // which is not implemented here. This logic assumes the update API
+      // replaces the image list. If you want to keep this image on update,
+      // you must send its URL back to the server.
+      _existingImages.removeAt(index);
+    });
   }
 
   Future<void> _submitForm() async {
@@ -97,32 +109,27 @@ class _EditProductScreenState extends State<EditProductScreen> {
       _isLoading = true;
     });
 
-    final updatedProductData = {
-      'id': widget.product.id,
+    final updatedFields = {
       'name': _nameController.text,
-      'code':
-          _codeController.text, // Kode biasanya tidak diubah, tapi bisa jadi
+      'code': _codeController.text,
       'description': _descriptionController.text,
-      'price': num.tryParse(_priceController.text) ?? widget.product.price,
-      'category': _selectedCategory ?? widget.product.category,
+      'price': _priceController.text,
+      'category': _selectedCategory!,
       'batik_type': _batikTypeController.text,
-      'status': _selectedStatus ?? widget.product.status,
-      'stock': int.tryParse(_stockController.text) ?? widget.product.stock,
-      'images':
-          _imageUrlController.text.isNotEmpty
-              ? _imageUrlController.text
-                  .split(',')
-                  .map((e) => e.trim())
-                  .toList()
-              : [], // Atau kirim list gambar lama jika tidak diubah dan API tidak menganggap list kosong sebagai penghapusan
-      // Tambahkan field lain yang bisa diupdate jika ada
+      'status': _selectedStatus!,
+      'stock': _stockController.text,
+      // NOTE: Untuk menangani penghapusan gambar, Anda mungkin perlu mengirim
+      // list URL gambar yang dipertahankan. Misal: 'existing_images': _existingImageUrls
+      // Ini sangat bergantung pada API backend Anda.
     };
+
+    final newImagePaths = _newSelectedImages.map((file) => file.path).toList();
 
     try {
       final success = await Provider.of<ProductProvider>(
         context,
         listen: false,
-      ).updateProduct(widget.product.id, updatedProductData);
+      ).updateProduct(widget.product.id, updatedFields, newImagePaths);
 
       if (mounted) {
         if (success) {
@@ -132,7 +139,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.of(context).pop(); // Kembali ke ProductScreen
+          Navigator.of(context).pop();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -185,17 +192,19 @@ class _EditProductScreenState extends State<EditProductScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
+                // ... (TextFormField dan Dropdown widgets sama seperti AddProductScreen) ...
                 _buildTextFormField(
                   _codeController,
                   'Product Code',
                   TextInputType.text,
                   readOnly: true,
-                ), // Kode produk biasanya tidak bisa diedit
+                ),
                 _buildTextFormField(
                   _nameController,
                   'Name',
                   TextInputType.text,
                 ),
+                // ... (lainnya) ...
                 _buildTextFormField(
                   _descriptionController,
                   'Description',
@@ -243,12 +252,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
                       (value) =>
                           value == null ? 'Please select a status' : null,
                 ),
-                _buildTextFormField(
-                  _imageUrlController,
-                  'Image URLs (comma-separated)',
-                  TextInputType.url,
-                ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+                Text('Images', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 8),
+                _buildImagePicker(),
+
                 _isLoading
                     ? const Center(
                       child: CircularProgressIndicator(
@@ -282,6 +290,90 @@ class _EditProductScreenState extends State<EditProductScreen> {
     );
   }
 
+  Widget _buildImagePicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 100,
+          child:
+              (_existingImages.isEmpty && _newSelectedImages.isEmpty)
+                  ? Center(
+                    child: Text(
+                      'No images.',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  )
+                  : ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount:
+                        _existingImages.length + _newSelectedImages.length,
+                    itemBuilder: (context, index) {
+                      Widget imageWidget;
+                      VoidCallback onRemove;
+
+                      if (index < _existingImages.length) {
+                        // Tampilkan gambar dari URL (yang sudah ada)
+                        final imageModel = _existingImages[index];
+                        imageWidget = Image.network(
+                          imageModel.fullImageUrl,
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, st) => Icon(Icons.error),
+                        );
+                        onRemove = () => _removeExistingImage(index);
+                      } else {
+                        // Tampilkan gambar dari file (yang baru dipilih)
+                        final imageIndex = index - _existingImages.length;
+                        final imageFile = _newSelectedImages[imageIndex];
+                        imageWidget = Image.file(
+                          File(imageFile.path),
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                        );
+                        onRemove = () => _removeNewImage(imageIndex);
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: imageWidget,
+                            ),
+                            Positioned(
+                              top: -10,
+                              right: -10,
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.cancel,
+                                  color: Colors.redAccent,
+                                  size: 22,
+                                ),
+                                onPressed: onRemove,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+        ),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          onPressed: _pickImages,
+          icon: const Icon(Icons.add_photo_alternate_outlined),
+          label: const Text('Add New Images'),
+          style: TextButton.styleFrom(foregroundColor: const Color(0xFFA16C22)),
+        ),
+      ],
+    );
+  }
+
+  // ... (copy _buildTextFormField dan _buildDropdownFormField dari AddProductScreen)
   Widget _buildTextFormField(
     TextEditingController controller,
     String label,
@@ -289,6 +381,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
     int? maxLines = 1,
     bool readOnly = false,
   }) {
+    // ...
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextFormField(
@@ -306,7 +399,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         readOnly: readOnly,
         validator: (value) {
           if (label.contains('(Optional')) return null;
-          if (readOnly) return null; // Tidak perlu validasi jika read-only
+          if (readOnly) return null;
           if (value == null || value.isEmpty) {
             return 'Please enter $label';
           }
@@ -327,6 +420,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
     required ValueChanged<String?> onChanged,
     FormFieldValidator<String>? validator,
   }) {
+    // ...
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: DropdownButtonFormField<String>(

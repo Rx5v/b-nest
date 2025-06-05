@@ -1,9 +1,11 @@
 // lib/screen/add_product_screen.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:admin_batik/providers/product_provider.dart';
 import 'package:admin_batik/models/product_model.dart'; // Meskipun tidak membuat instance langsung, berguna untuk referensi field
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 class AddProductScreen extends StatefulWidget {
   static const routeName =
@@ -37,6 +39,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final List<String> _categories = ['Kain', 'Kaos', 'Kemeja'];
   final List<String> _statuses = ['Tersedia', 'Tidak Tersedia'];
 
+  final ImagePicker _picker = ImagePicker();
+  List<XFile> _selectedImages = [];
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -46,6 +51,26 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _imageUrlController.dispose();
     _productCodeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImages() async {
+    try {
+      final List<XFile> pickedFiles = await _picker.pickMultiImage();
+      if (pickedFiles.isNotEmpty) {
+        setState(() {
+          // Tambahkan gambar baru ke list yang sudah ada
+          _selectedImages.addAll(pickedFiles);
+        });
+      }
+    } catch (e) {
+      print("Error picking images: $e");
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+    });
   }
 
   Future<void> _submitForm() async {
@@ -61,36 +86,27 @@ class _AddProductScreenState extends State<AddProductScreen> {
     // Siapkan data produk dari input form
     // Anda mungkin perlu menyesuaikan `productCode` jika di-generate oleh backend
     // atau jika user tidak menginputkannya.
-    final productData = {
+    final productFields = {
       'name': _nameController.text,
-      'code':
-          _codeController.text.isEmpty
-              ? null
-              : _codeController
-                  .text, // Kirim null jika kosong, backend bisa generate
+      'code': _codeController.text,
       'description': _descriptionController.text,
-      'price': num.tryParse(_priceController.text) ?? 0, // Kirim sebagai num
-      'category': _selectedCategory, // Langsung kirim string kategori
+      'price': _priceController.text,
+      'category':
+          _selectedCategory!, // Pastikan tidak null karena ada validator
       'batik_type': _batikTypeController.text,
-      'status': _selectedStatus, // Langsung kirim string status
-      'stock': int.tryParse(_stockController.text) ?? 0, // Tambahkan stock
-      // Untuk 'images', jika API mengharapkan list of URLs dalam JSON:
-      'images':
-          _imageUrlController.text.isNotEmpty
-              ? _imageUrlController.text
-                  .split(',')
-                  .map((e) => e.trim())
-                  .toList() // Contoh jika URL dipisah koma
-              : [], // Atau null jika API memperbolehkan
-      // Jika API memerlukan field lain, tambahkan di sini
+      'status': _selectedStatus!, // Pastikan tidak null karena ada validator
+      'stock': _stockController.text,
     };
+    productFields.removeWhere((key, value) => value.isEmpty && key == 'code');
+
+    // Dapatkan list path dari XFile
+    final imagePaths = _selectedImages.map((file) => file.path).toList();
 
     try {
       final success = await Provider.of<ProductProvider>(
         context,
         listen: false,
-      ).addProduct(productData);
-
+      ).addProduct(productFields, imagePaths);
       if (mounted) {
         // Cek apakah widget masih ada di tree
         if (success) {
@@ -202,11 +218,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       (value) =>
                           value == null ? 'Please select a status' : null,
                 ),
-                _buildTextFormField(
-                  _imageUrlController,
-                  'Image URL (Optional)',
-                  TextInputType.url,
-                ),
+                const SizedBox(height: 16),
+                // UI untuk memilih dan menampilkan gambar
+                Text('Images', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 8),
+                _buildImagePicker(),
                 const SizedBox(height: 24),
                 _isLoading
                     ? const Center(
@@ -274,6 +290,66 @@ class _AddProductScreenState extends State<AddProductScreen> {
           return null;
         },
       ),
+    );
+  }
+
+  Widget _buildImagePicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 100,
+          child:
+              _selectedImages.isEmpty
+                  ? Center(
+                    child: Text(
+                      'No images selected.',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  )
+                  : ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _selectedImages.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                File(_selectedImages[index].path),
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              top: -10,
+                              right: -10,
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.cancel,
+                                  color: Colors.redAccent,
+                                  size: 22,
+                                ),
+                                onPressed: () => _removeImage(index),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+        ),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          onPressed: _pickImages,
+          icon: const Icon(Icons.add_photo_alternate_outlined),
+          label: const Text('Select Images'),
+          style: TextButton.styleFrom(foregroundColor: const Color(0xFFA16C22)),
+        ),
+      ],
     );
   }
 

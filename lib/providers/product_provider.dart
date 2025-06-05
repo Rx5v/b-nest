@@ -70,6 +70,7 @@ class ProductProvider with ChangeNotifier {
       print(_errorMessage);
     }
     _isLoading = false;
+    print(_isLoading);
     notifyListeners();
   }
 
@@ -81,41 +82,9 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> addProduct(Map<String, dynamic> productData) async {
-    if (authProvider.token == null) {
-      _errorMessage = "Authentication token not found.";
-      notifyListeners();
-      return false;
-    }
-    _isSubmitting = true; // Menggunakan _isSubmitting
-    _errorMessage = null;
-    notifyListeners();
-    bool success = false;
-    try {
-      final response = await _productService.addProduct(
-        authProvider.token!,
-        productData,
-      );
-      if (response['meta']['success'] == true) {
-        await fetchProducts(refresh: true);
-        success = true;
-      } else {
-        _errorMessage = response['meta']['message'] ?? 'Failed to add product.';
-        success = false;
-      }
-    } catch (e) {
-      _errorMessage = 'An error occurred while adding product: $e';
-      print(_errorMessage);
-      success = false;
-    }
-    _isSubmitting = false; // Menggunakan _isSubmitting
-    notifyListeners();
-    return success;
-  }
-
-  Future<bool> updateProduct(
-    int productId,
-    Map<String, dynamic> productData,
+  Future<bool> addProduct(
+    Map<String, String> productFields,
+    List<String> imagePaths,
   ) async {
     if (authProvider.token == null) {
       _errorMessage = "Authentication token not found.";
@@ -123,7 +92,55 @@ class ProductProvider with ChangeNotifier {
       return false;
     }
 
-    _isSubmitting = true; // Menggunakan _isSubmitting
+    _isSubmitting = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    bool success = false;
+    try {
+      final response = await _productService.addProduct(
+        authProvider.token!,
+        productFields,
+        imagePaths,
+      );
+      if (response['meta']['success'] == true) {
+        await fetchProducts(refresh: true);
+        success = true;
+      } else {
+        // Cek jika ada error validasi dari backend
+        if (response['data'] != null && response['data'] is Map) {
+          print(response['data']);
+          final errors = response['data'] as Map<String, dynamic>;
+          _errorMessage = errors.values.map((e) => e.join('\n')).join('\n');
+        } else {
+          _errorMessage =
+              response['meta']['message'] ?? 'Failed to add product.';
+        }
+        success = false;
+      }
+    } catch (e) {
+      _errorMessage = 'An error occurred while adding product: $e';
+      print(_errorMessage);
+      success = false;
+    }
+
+    _isSubmitting = false;
+    notifyListeners();
+    return success;
+  }
+
+  Future<bool> updateProduct(
+    int productId,
+    Map<String, String> productFields,
+    List<String> newImagePaths,
+  ) async {
+    if (authProvider.token == null) {
+      _errorMessage = "Authentication token not found.";
+      notifyListeners();
+      return false;
+    }
+
+    _isSubmitting = true; // Gunakan flag ini untuk loading di UI
     _errorMessage = null;
     notifyListeners();
 
@@ -132,7 +149,8 @@ class ProductProvider with ChangeNotifier {
       final response = await _productService.updateProduct(
         authProvider.token!,
         productId,
-        productData,
+        productFields,
+        newImagePaths,
       );
       if (response['meta']['success'] == true) {
         // Produk berhasil diupdate
@@ -140,8 +158,14 @@ class ProductProvider with ChangeNotifier {
         await fetchProducts(refresh: true);
         success = true;
       } else {
-        _errorMessage =
-            response['meta']['message'] ?? 'Failed to update product.';
+        // ... (penanganan error)
+        if (response['data'] != null && response['data'] is Map) {
+          final errors = response['data'] as Map<String, dynamic>;
+          _errorMessage = errors.values.map((e) => e.join('\n')).join('\n');
+        } else {
+          _errorMessage =
+              response['meta']['message'] ?? 'Failed to update product.';
+        }
         success = false;
       }
     } catch (e) {
@@ -150,7 +174,7 @@ class ProductProvider with ChangeNotifier {
       success = false;
     }
 
-    _isSubmitting = false; // Menggunakan _isSubmitting
+    _isSubmitting = false;
     notifyListeners();
     return success;
   }

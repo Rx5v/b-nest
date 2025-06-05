@@ -1,4 +1,5 @@
 // lib/screen/main_layout_screen.dart
+import 'package:admin_batik/providers/product_provider.dart';
 import 'package:admin_batik/screen/dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -28,6 +29,20 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   ];
 
   void _onItemTapped(int index) {
+    if (index == 1) {
+      // Gunakan Provider.of dengan listen: false di dalam method
+      final productProvider = Provider.of<ProductProvider>(
+        context,
+        listen: false,
+      );
+
+      // Panggil API hanya jika daftar produk saat ini kosong.
+      // Ini untuk mencegah pemanggilan berulang setiap kali tab di-tap.
+      if (productProvider.products.isEmpty) {
+        print('Fetching products for the first time...');
+        productProvider.fetchProducts(refresh: true);
+      }
+    }
     setState(() {
       _selectedIndex = index;
     });
