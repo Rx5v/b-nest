@@ -53,6 +53,75 @@ class _ProductScreenState extends State<ProductScreen> {
     return formatCurrency.format(price);
   }
 
+  Future<void> _showDeleteConfirmationDialog(
+    int productId,
+    String productName,
+  ) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user harus menekan tombol
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Deletion'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('Are you sure you want to delete product "$productName"?'),
+                const Text('This action cannot be undone.'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Tutup dialog
+                _deleteProduct(productId); // Panggil method hapus
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _deleteProduct(int productId) async {
+    final success = await Provider.of<ProductProvider>(
+      context,
+      listen: false,
+    ).deleteProduct(productId);
+    if (mounted) {
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Product deleted successfully.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              Provider.of<ProductProvider>(
+                    context,
+                    listen: false,
+                  ).errorMessage ??
+                  'Failed to delete product.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final productProvider = Provider.of<ProductProvider>(context);
@@ -356,6 +425,23 @@ class _ProductScreenState extends State<ProductScreen> {
                               : Colors.grey.shade700,
                     ),
                   ),
+                ),
+              ],
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.redAccent,
+                    size: 22,
+                  ),
+                  onPressed: () {
+                    _showDeleteConfirmationDialog(product.id, product.name);
+                  },
                 ),
               ],
             ),

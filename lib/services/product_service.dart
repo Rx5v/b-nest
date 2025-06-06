@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ProductService {
-  static const String _baseUrl = 'http://192.168.157.232:8000/api/admin';
+  static const String _baseUrl = 'http://10.200.5.145:8000/api/admin';
 
   Future<Map<String, dynamic>> getProducts(String token, {int page = 1}) async {
     final url = Uri.parse('$_baseUrl/products?page=$page');
@@ -82,7 +82,7 @@ class ProductService {
     Map<String, String> fields,
     List<String> newImagePaths,
   ) async {
-    final url = Uri.parse('$_baseUrl/products/$productId');
+    final url = Uri.parse('$_baseUrl/products?id=$productId');
     print('Updating product $productId (multipart)');
 
     try {
@@ -117,6 +117,53 @@ class ProductService {
           'message': 'An error occurred: ${e.toString()}',
         },
         'data': null,
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> deleteProduct(
+    String token,
+    int productId,
+  ) async {
+    // Sesuai contoh Anda, ID dikirim sebagai query parameter
+    final url = Uri.parse('$_baseUrl/products?id=$productId');
+    print('Deleting product $productId at: $url');
+
+    try {
+      // Menggunakan http.delete() untuk kemudahan, ini setara dengan http.Request('DELETE', ...)
+      final response = await http.delete(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print('Delete Product Raw Response: ${response.body}');
+      final cleanBody = response.body.trim();
+      // Periksa jika body kosong, karena delete sukses mungkin tidak mengembalikan body
+      if (cleanBody.isEmpty) {
+        // Jika status code 200 OK atau 204 No Content, anggap sukses
+        if (response.statusCode == 200 || response.statusCode == 204) {
+          return {
+            'meta': {
+              'success': true,
+              'code': response.statusCode,
+              'message': 'Product deleted successfully.',
+            },
+          };
+        }
+      }
+      return jsonDecode(cleanBody);
+    } catch (e) {
+      print('Error deleting product $productId: $e');
+      return {
+        'meta': {
+          'success': false,
+          'code': 500,
+          'message':
+              'An error occurred while deleting product: ${e.toString()}',
+        },
       };
     }
   }

@@ -178,4 +178,50 @@ class ProductProvider with ChangeNotifier {
     notifyListeners();
     return success;
   }
+
+  Future<bool> deleteProduct(int productId) async {
+    if (authProvider.token == null) {
+      _errorMessage = "Authentication token not found.";
+      notifyListeners();
+      return false;
+    }
+
+    // Simpan produk yang akan dihapus, untuk jaga-jaga jika gagal
+    final existingProductIndex = _products.indexWhere(
+      (prod) => prod.id == productId,
+    );
+    if (existingProductIndex == -1) return false; // Produk tidak ditemukan
+
+    var existingProduct = _products[existingProductIndex];
+
+    // Hapus dari UI terlebih dahulu untuk respons cepat (Optimistic Deleting)
+    _products.removeAt(existingProductIndex);
+    notifyListeners();
+
+    try {
+      final response = await _productService.deleteProduct(
+        authProvider.token!,
+        productId,
+      );
+      if (response['meta']['success'] == true) {
+        // Sukses, tidak perlu melakukan apa-apa karena UI sudah diupdate
+        return true;
+      } else {
+        // Jika gagal, kembalikan produk yang dihapus ke list dan tampilkan error
+        _errorMessage =
+            response['meta']['message'] ?? 'Failed to delete product.';
+        _products.insert(existingProductIndex, existingProduct);
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = 'An error occurred: $e';
+      _products.insert(
+        existingProductIndex,
+        existingProduct,
+      ); // Kembalikan jika error
+      notifyListeners();
+      return false;
+    }
+  }
 }

@@ -32,7 +32,7 @@ class ProductImageModel {
   // Asumsi: URL storage sama dengan base URL API + '/storage/'
   String get fullImageUrl {
     const String storageBaseUrl =
-        'http://192.168.157.232:8000'; // Sesuaikan jika berbeda
+        'http://10.200.5.145:8000/storage'; // Sesuaikan jika berbeda
     return '$storageBaseUrl/$imagePath';
   }
 }
