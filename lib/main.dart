@@ -1,4 +1,5 @@
 // lib/main.dart
+import 'package:admin_batik/providers/variant_provider.dart';
 import 'package:admin_batik/screen/add_product_screen.dart';
 import 'package:admin_batik/screen/splash_screen.dart';
 import 'package:flutter/material.dart';
@@ -37,6 +38,13 @@ class MyAppWrapper extends StatelessWidget {
           update: (ctx, auth, previousProductProvider) => ProductProvider(auth),
           // previousProductProvider bisa digunakan jika Anda ingin mempertahankan state lama
           // tapi di sini kita buat instance baru dengan AuthProvider yang terupdate
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, VariantProvider>(
+          create:
+              (ctx) => VariantProvider(
+                Provider.of<AuthProvider>(ctx, listen: false),
+              ),
+          update: (ctx, auth, previous) => VariantProvider(auth),
         ),
       ],
       child: const MyApp(),

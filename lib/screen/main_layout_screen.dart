@@ -1,6 +1,7 @@
 // lib/screen/main_layout_screen.dart
 import 'package:admin_batik/providers/product_provider.dart';
 import 'package:admin_batik/screen/dashboard.dart';
+import 'package:admin_batik/screen/product_menu_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:admin_batik/providers/auth_provider.dart';
@@ -23,7 +24,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   // Daftar halaman yang akan ditampilkan berdasarkan _selectedIndex
   static const List<Widget> _widgetOptions = <Widget>[
     DashboardScreen(), // Indeks 0
-    ProductScreen(), // Indeks 1
+    ProductMenuScreen(), // Indeks 1
     Text('Stock Page (Coming Soon)'), // Indeks 2 (Placeholder)
     Text('Transaction Page (Coming Soon)'), // Indeks 3 (Placeholder)
   ];

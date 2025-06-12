@@ -1,9 +1,10 @@
 // lib/services/product_service.dart
 import 'dart:convert';
+import 'package:admin_batik/models/product_model.dart';
 import 'package:http/http.dart' as http;
 
 class ProductService {
-  static const String _baseUrl = 'http://10.200.5.145:8000/api/admin';
+  static const String _baseUrl = 'http://10.0.2.2:8000/api/admin';
 
   Future<Map<String, dynamic>> getProducts(String token, {int page = 1}) async {
     final url = Uri.parse('$_baseUrl/products?page=$page');
@@ -165,6 +166,43 @@ class ProductService {
               'An error occurred while deleting product: ${e.toString()}',
         },
       };
+    }
+  }
+
+  Future<List<ProductModel>> findProducts(String token, String query) async {
+    // Buat URL dengan query pencarian. Jika query kosong, ambil semua.
+    final url = Uri.parse('$_baseUrl/products?search=$query');
+    print('Finding products with query "$query" from: $url');
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final responseBody = jsonDecode(response.body.trim());
+
+      if (response.statusCode == 200 &&
+          responseBody['meta']['success'] == true) {
+        // API untuk pencarian mungkin mengembalikan data di 'data' atau 'data.data'
+        // Kita perlu fleksibel. Kode ini mencoba keduanya.
+        final List<dynamic> productDataList =
+            responseBody['data'] is List
+                ? responseBody['data']
+                : responseBody['data']?['data'] ?? [];
+
+        return productDataList
+            .map((data) => ProductModel.fromJson(data as Map<String, dynamic>))
+            .toList();
+      } else {
+        throw Exception('Failed to find products');
+      }
+    } catch (e) {
+      print('Error finding products: $e');
+      throw Exception('Error finding products: $e');
     }
   }
 }

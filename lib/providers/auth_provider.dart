@@ -29,33 +29,42 @@ class AuthProvider with ChangeNotifier {
   AuthProvider() {
     _tryAutoLogin();
   }
-
   Future<void> _tryAutoLogin() async {
     _isInitializing = true;
-    notifyListeners(); // Beritahu UI bahwa kita sedang inisialisasi
+    notifyListeners();
 
-    try {
-      final storedToken = await _storage.read(key: _tokenKey);
-      final storedUserJson = await _storage.read(key: _userKey);
+    // 1. Definisikan future untuk pengecekan otentikasi
+    Future<void> authCheckFuture = Future(() async {
+      try {
+        final storedToken = await _storage.read(key: _tokenKey);
+        final storedUserJson = await _storage.read(key: _userKey);
 
-      if (storedToken != null && storedUserJson != null) {
-        // Di aplikasi nyata, Anda mungkin ingin memvalidasi token ini dengan backend
-        // Untuk sekarang, kita anggap jika ada, maka valid
-        _token = storedToken;
-        _currentUser = UserModel.fromJson(
-          jsonDecode(storedUserJson) as Map<String, dynamic>,
-        );
-        _isAuthenticated = true;
-      } else {
-        _isAuthenticated = false; // Pastikan false jika tidak ada data
+        if (storedToken != null && storedUserJson != null) {
+          _token = storedToken;
+          _currentUser = UserModel.fromJson(
+            jsonDecode(storedUserJson) as Map<String, dynamic>,
+          );
+          _isAuthenticated = true;
+        } else {
+          _isAuthenticated = false;
+        }
+      } catch (e) {
+        print("Error during auto login auth check: $e");
+        _isAuthenticated = false;
       }
-    } catch (e) {
-      print("Error during auto login: $e");
-      _isAuthenticated = false; // Jika ada error, anggap tidak terotentikasi
-    }
+    });
 
+    // 2. Definisikan future untuk durasi minimum splash screen
+    Future<void> splashDelayFuture = Future.delayed(
+      const Duration(seconds: 3),
+    ); // Durasi 3 detik
+
+    // 3. Tunggu kedua future selesai
+    await Future.wait([authCheckFuture, splashDelayFuture]);
+
+    // 4. Setelah keduanya selesai, baru hentikan inisialisasi
     _isInitializing = false;
-    notifyListeners(); // Beritahu UI bahwa inisialisasi selesai
+    notifyListeners();
   }
 
   Future<bool> login(String email, String password) async {
