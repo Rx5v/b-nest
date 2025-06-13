@@ -2,6 +2,7 @@
 import 'package:admin_batik/providers/product_provider.dart';
 import 'package:admin_batik/screen/dashboard.dart';
 import 'package:admin_batik/screen/product_menu_screen.dart';
+import 'package:admin_batik/screen/transaction_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:admin_batik/providers/auth_provider.dart';
@@ -26,7 +27,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     DashboardScreen(), // Indeks 0
     ProductMenuScreen(), // Indeks 1
     Text('Stock Page (Coming Soon)'), // Indeks 2 (Placeholder)
-    Text('Transaction Page (Coming Soon)'), // Indeks 3 (Placeholder)
+    TransactionListScreen(), // Indeks 3 (Placeholder)
   ];
 
   void _onItemTapped(int index) {
@@ -149,9 +150,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
             label: 'Product',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.widgets_outlined),
-            activeIcon: Icon(Icons.widgets),
-            label: 'Stock',
+            icon: Icon(Icons.analytics_outlined),
+            activeIcon: Icon(Icons.analytics),
+            label: 'Report',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.receipt_long_outlined),

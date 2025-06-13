@@ -1,4 +1,5 @@
 // lib/main.dart
+import 'package:admin_batik/providers/transaction_provider.dart';
 import 'package:admin_batik/providers/variant_provider.dart';
 import 'package:admin_batik/screen/add_product_screen.dart';
 import 'package:admin_batik/screen/splash_screen.dart';
@@ -45,6 +46,13 @@ class MyAppWrapper extends StatelessWidget {
                 Provider.of<AuthProvider>(ctx, listen: false),
               ),
           update: (ctx, auth, previous) => VariantProvider(auth),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, TransactionProvider>(
+          create:
+              (ctx) => TransactionProvider(
+                Provider.of<AuthProvider>(ctx, listen: false),
+              ),
+          update: (ctx, auth, previous) => TransactionProvider(auth),
         ),
       ],
       child: const MyApp(),
