@@ -1,15 +1,40 @@
 // lib/screen/dashboard_screen.dart
+import 'package:admin_batik/providers/report_provider.dart';
+import 'package:admin_batik/providers/transaction_provider.dart';
+import 'package:admin_batik/screen/transaction_detail_screen.dart';
 import 'package:flutter/material.dart';
 // Hapus import provider jika tidak digunakan langsung di sini untuk AppBar/BottomNav
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
-class DashboardScreen extends StatelessWidget {
-  // Tidak perlu StatefulWidget jika hanya UI statis
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
+  State<DashboardScreen> createState() => _DashboardScreen();
+}
+
+class _DashboardScreen extends State<DashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(
+      () =>
+          Provider.of<ReportProvider>(context, listen: false).fetchAllReports(),
+    );
+    Future.microtask(
+      () =>
+          Provider.of<TransactionProvider>(
+            context,
+            listen: false,
+          ).fetchTransactions(),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Tidak ada Scaffold, AppBar, atau BottomNavigationBar di sini lagi
+    final provider = Provider.of<ReportProvider>(context);
     return SingleChildScrollView(
       // Langsung return konten body
       padding: const EdgeInsets.all(16.0),
@@ -19,7 +44,7 @@ class DashboardScreen extends StatelessWidget {
           _buildMonthNavigator(),
           const SizedBox(height: 20),
           Text(
-            'Total Sales',
+            'Today Sales',
             style: GoogleFonts.crimsonPro(
               fontSize: 16,
               color: Colors.grey.shade700,
@@ -28,7 +53,9 @@ class DashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Rp. 21.000.000.000',
+            NumberFormat.currency(
+              locale: 'id-ID',
+            ).format(double.parse(provider.dailyIncome)),
             style: GoogleFonts.crimsonPro(
               fontSize: 28,
               fontWeight: FontWeight.bold,
@@ -37,7 +64,7 @@ class DashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            'Category',
+            'Recap',
             style: GoogleFonts.crimsonPro(
               fontSize: 16,
               color: Colors.grey.shade700,
@@ -85,12 +112,13 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildCategorySummary() {
+    final provider = Provider.of<ReportProvider>(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildCategoryItem('27', 'Kain', 'Rp. 7.000.000.000'),
-        _buildCategoryItem('27', 'Kaos', 'Rp. 7.000.000.000'),
-        _buildCategoryItem('27', 'Kemeja', 'Rp. 7.000.000.000'),
+        _buildCategoryItem('27', 'Week', provider.weeklyIncome),
+        _buildCategoryItem('27', 'Month', provider.monthlyIncome),
+        _buildCategoryItem('27', 'Year', provider.yearlyIncome),
       ],
     );
   }
@@ -126,7 +154,10 @@ class DashboardScreen extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              amount,
+              NumberFormat.currency(
+                locale: 'id-ID',
+              ).format(double.parse(amount)),
+
               style: GoogleFonts.crimsonPro(
                 fontSize: 11,
                 color: Colors.grey.shade500,
@@ -166,84 +197,78 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildTodaySalesList() {
-    final List<Map<String, String>> salesData = List.generate(
-      7,
-      (index) => {
-        'trx': 'trx00001',
-        'date': '1/06/2025',
-        'name': 'Aviana Candra A.N',
-        'location': 'Klaten, Jawa Tengah, Indonesia',
-        'amount': 'Rp. 12.000.000',
-      },
-    );
+    final listProvider = Provider.of<TransactionProvider>(context);
 
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: salesData.length,
-      itemBuilder: (context, index) {
-        final item = salesData[index];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item['trx']!,
-                    style: GoogleFonts.crimsonPro(
-                      fontSize: 13,
-                      color: Colors.grey.shade500,
-                      fontWeight: FontWeight.w500,
+    return listProvider.isLoadingList
+        ? const Center(child: CircularProgressIndicator())
+        : Column(
+          children: [
+            SizedBox(
+              height: 200,
+              child: ListView.builder(
+                itemCount: listProvider.transactions.length,
+                itemBuilder: (context, index) {
+                  final transaction = listProvider.transactions[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
                     ),
-                  ),
-                  Text(
-                    item['date']!,
-                    style: GoogleFonts.crimsonPro(
-                      fontSize: 12,
-                      color: Colors.grey.shade400,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item['name']!,
-                      style: GoogleFonts.crimsonPro(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF3A3A3A),
+                    child: ListTile(
+                      title: Text(
+                        transaction.code,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                    ),
-                    Text(
-                      item['location']!,
-                      style: GoogleFonts.crimsonPro(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
+                      subtitle: Text(
+                        DateFormat(
+                          'd MMM yyyy, HH:mm',
+                        ).format(transaction.transactionDate),
                       ),
+                      trailing: Chip(
+                        label: Text(
+                          transaction.orderStatus,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        backgroundColor: _getStatusColor(
+                          transaction.orderStatus,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder:
+                                (_) => TransactionDetailScreen(
+                                  transactionId: transaction.id,
+                                  transactionCode: transaction.code,
+                                ),
+                          ),
+                        );
+                      },
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
-              const SizedBox(width: 16),
-              Text(
-                item['amount']!,
-                style: GoogleFonts.crimsonPro(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF3A3A3A),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         );
-      },
-    );
+  }
+}
+
+Color _getStatusColor(String status) {
+  switch (status.toLowerCase()) {
+    case 'selesai':
+      return Colors.green;
+    case 'dibatalkan':
+      return Colors.red;
+    case 'diproses':
+      return Colors.blue;
+    case 'menunggu persetujuan':
+      return Colors.orange;
+    default:
+      return Colors.grey;
   }
 }

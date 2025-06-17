@@ -1,4 +1,5 @@
 // lib/main.dart
+import 'package:admin_batik/providers/report_provider.dart';
 import 'package:admin_batik/providers/transaction_provider.dart';
 import 'package:admin_batik/providers/variant_provider.dart';
 import 'package:admin_batik/screen/add_product_screen.dart';
@@ -31,6 +32,12 @@ class MyAppWrapper extends StatelessWidget {
       // Gunakan MultiProvider untuk beberapa provider
       providers: [
         ChangeNotifierProvider(create: (ctx) => AuthProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, ReportProvider>(
+          create:
+              (ctx) =>
+                  ReportProvider(Provider.of<AuthProvider>(ctx, listen: false)),
+          update: (ctx, auth, previous) => ReportProvider(auth),
+        ),
         ChangeNotifierProxyProvider<AuthProvider, ProductProvider>(
           create:
               (ctx) => ProductProvider(
