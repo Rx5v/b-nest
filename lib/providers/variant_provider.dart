@@ -131,4 +131,43 @@ class VariantProvider with ChangeNotifier {
       return {'success': false, 'message': _errorMessage};
     }
   }
+
+  Future<Map<String, dynamic>> updateVariant(
+    int variantId,
+    Map<String, String> fields,
+  ) async {
+    if (authProvider.token == null) {
+      return {'success': false, 'message': 'Authentication token not found.'};
+    }
+
+    _isLoading = true; // Bisa pakai state loading spesifik jika perlu
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _variantService.updateVariant(
+        authProvider.token!,
+        variantId,
+        fields,
+      );
+
+      if (response['meta'] != null && response['meta']['success'] == true) {
+        _isLoading = false;
+        notifyListeners();
+        return {'success': true}; // Kembalikan sinyal sukses
+      } else {
+        _errorMessage =
+            response['meta']?['message'] ?? 'Failed to update variant.';
+        final errorData = response['data']?['error'];
+        _isLoading = false;
+        notifyListeners();
+        return {'success': false, 'errors': errorData};
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return {'success': false, 'message': _errorMessage};
+    }
+  }
 }

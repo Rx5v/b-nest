@@ -50,7 +50,7 @@ class _ProductScreenState extends State<ProductScreen> {
   String _formatPrice(double price) {
     final formatCurrency = NumberFormat.currency(
       locale: 'id_ID',
-      symbol: 'Rp ', // Beri spasi agar lebih rapi
+      symbol: 'Rp ',
       decimalDigits: 0,
     );
     return formatCurrency.format(price);
@@ -250,7 +250,6 @@ class _ProductScreenState extends State<ProductScreen> {
     );
   }
 
-  // --- TAMPILAN KARTU PRODUK YANG BARU DAN LEBIH RAPI ---
   Widget _buildProductItem(ProductModel product) {
     ProductImageModel? firstImage =
         product.images.isNotEmpty ? product.images.first : null;
@@ -264,7 +263,6 @@ class _ProductScreenState extends State<ProductScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Bagian Atas: Gambar dan Info Utama
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: Row(
@@ -273,9 +271,7 @@ class _ProductScreenState extends State<ProductScreen> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8.0),
                   child: CachedNetworkImage(
-                    imageUrl:
-                        firstImage?.fullImageUrl ??
-                        '', // Beri string kosong jika null
+                    imageUrl: firstImage?.fullImageUrl ?? '',
                     width: 70,
                     height: 70,
                     fit: BoxFit.cover,

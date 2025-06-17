@@ -90,11 +90,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
   void _removeExistingImage(int index) {
     setState(() {
-      // NOTE: This only removes the image from the UI for now.
-      // The actual deletion on the server requires a specific API call
-      // which is not implemented here. This logic assumes the update API
-      // replaces the image list. If you want to keep this image on update,
-      // you must send its URL back to the server.
       _existingImages.removeAt(index);
     });
   }
@@ -118,9 +113,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
       'batik_type': _batikTypeController.text,
       'status': _selectedStatus!,
       'stock': _stockController.text,
-      // NOTE: Untuk menangani penghapusan gambar, Anda mungkin perlu mengirim
-      // list URL gambar yang dipertahankan. Misal: 'existing_images': _existingImageUrls
-      // Ini sangat bergantung pada API backend Anda.
     };
 
     final newImagePaths = _newSelectedImages.map((file) => file.path).toList();
@@ -192,7 +184,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                // ... (TextFormField dan Dropdown widgets sama seperti AddProductScreen) ...
                 _buildTextFormField(
                   _codeController,
                   'Product Code',
@@ -373,7 +364,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
     );
   }
 
-  // ... (copy _buildTextFormField dan _buildDropdownFormField dari AddProductScreen)
   Widget _buildTextFormField(
     TextEditingController controller,
     String label,
@@ -381,7 +371,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
     int? maxLines = 1,
     bool readOnly = false,
   }) {
-    // ...
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextFormField(
@@ -420,7 +409,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
     required ValueChanged<String?> onChanged,
     FormFieldValidator<String>? validator,
   }) {
-    // ...
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: DropdownButtonFormField<String>(

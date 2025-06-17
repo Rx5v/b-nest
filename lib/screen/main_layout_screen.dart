@@ -8,8 +8,6 @@ import 'package:provider/provider.dart';
 import 'package:admin_batik/providers/auth_provider.dart';
 import 'package:admin_batik/models/user_model.dart';
 
-import 'package:admin_batik/screen/product_screen.dart';
-// Impor halaman lain jika sudah ada (StockScreen, TransactionScreen)
 import 'package:google_fonts/google_fonts.dart';
 
 class MainLayoutScreen extends StatefulWidget {
@@ -20,28 +18,23 @@ class MainLayoutScreen extends StatefulWidget {
 }
 
 class _MainLayoutScreenState extends State<MainLayoutScreen> {
-  int _selectedIndex = 0; // Indeks default adalah Home/Dashboard
+  int _selectedIndex = 0;
 
-  // Daftar halaman yang akan ditampilkan berdasarkan _selectedIndex
   static const List<Widget> _widgetOptions = <Widget>[
-    DashboardScreen(), // Indeks 0
-    ProductMenuScreen(), // Indeks 1
-    Text('Stock Page (Coming Soon)'), // Indeks 2 (Placeholder)
-    TransactionListScreen(), // Indeks 3 (Placeholder)
+    DashboardScreen(),
+    ProductMenuScreen(),
+    Text('Stock Page (Coming Soon)'),
+    TransactionListScreen(),
   ];
 
   void _onItemTapped(int index) {
     if (index == 1) {
-      // Gunakan Provider.of dengan listen: false di dalam method
       final productProvider = Provider.of<ProductProvider>(
         context,
         listen: false,
       );
 
-      // Panggil API hanya jika daftar produk saat ini kosong.
-      // Ini untuk mencegah pemanggilan berulang setiap kali tab di-tap.
       if (productProvider.products.isEmpty) {
-        print('Fetching products for the first time...');
         productProvider.fetchProducts(refresh: true);
       }
     }
@@ -115,11 +108,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
           ),
         ],
       ),
-      body: IndexedStack(
-        // Menggunakan IndexedStack agar state halaman tetap terjaga
-        index: _selectedIndex,
-        children: _widgetOptions,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _widgetOptions),
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }

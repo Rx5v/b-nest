@@ -1,8 +1,7 @@
-// lib/screen/login.dart
-import 'package:admin_batik/providers/auth_provider.dart'; // Updated import
+import 'package:admin_batik/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart'; // Import Provider
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,10 +13,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-  // isLoading state is now managed by AuthProvider,
-  // but we can have a local loading for button disabling if preferred,
-  // or directly use Provider's isLoading.
-  // For this example, AuthProvider's isLoading will handle disabling.
 
   void _handleLogin(BuildContext context) async {
     final email = emailController.text.trim();
@@ -29,15 +24,11 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // The loading state and navigation will be handled by AuthProvider
-    // and the Consumer in main.dart
     bool success = await authProvider.login(email, password);
 
     if (!success && authProvider.errorMessage != null) {
       _showMessage(authProvider.errorMessage!);
     }
-    // No need to show success message here, navigation will occur
-    // No need to navigate here, Consumer<AuthProvider> in MyApp handles it
   }
 
   void _showMessage(String message) {
@@ -105,13 +96,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 obscureText: true,
                 decoration: _inputDecoration("Password"),
               ),
-              const SizedBox(height: 24), // Increased spacing a bit
+              const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: authProvider.isLoading
-                      ? null
-                      : () => _handleLogin(context),
+                  onPressed:
+                      authProvider.isLoading
+                          ? null
+                          : () => _handleLogin(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFA16C22),
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -119,46 +111,25 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: authProvider.isLoading
-                      ? const SizedBox(
-                          height:
-                              20, // Define size for CircularProgressIndicator
-                          width:
-                              20, // Define size for CircularProgressIndicator
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 3, // Adjust thickness
+                  child:
+                      authProvider.isLoading
+                          ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 3, // Adjust thickness
+                            ),
+                          )
+                          : Text(
+                            'Login',
+                            style: GoogleFonts.crimsonPro(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
                           ),
-                        )
-                      : Text(
-                          'Login',
-                          style: GoogleFonts.crimsonPro(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Don't have an account? "),
-                  GestureDetector(
-                    onTap: () {
-                      // Navigasi ke halaman sign up - Implement if needed
-                      _showMessage("Sign Up page not implemented yet.");
-                    },
-                    child: const Text(
-                      "Sign Up",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFA16C22), // Match button color
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),

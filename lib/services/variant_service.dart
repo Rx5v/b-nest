@@ -63,4 +63,31 @@ class VariantService {
       throw Exception('Failed to add variant: $e');
     }
   }
+
+  Future<Map<String, dynamic>> updateVariant(
+    String token,
+    int variantId,
+    Map<String, String> fields,
+  ) async {
+    final url = Uri.parse('$_baseUrl/product-variants?id=$variantId');
+    print('Updating variant $variantId at: $url');
+
+    try {
+      // Menggunakan POST dengan _method: 'PUT' untuk konsistensi jika ada file di masa depan
+      var request = http.MultipartRequest('POST', url);
+      request.headers.addAll({
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      });
+
+      request.fields.addAll(fields);
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+      print(response.body.trim());
+      return jsonDecode(response.body.trim());
+    } catch (e) {
+      throw Exception('Failed to update variant: $e');
+    }
+  }
 }

@@ -4,10 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:admin_batik/models/product_model.dart';
 import 'package:admin_batik/providers/variant_provider.dart';
 import 'package:admin_batik/screen/add_variant_screen.dart';
+import 'package:admin_batik/screen/edit_variant_screen.dart'; // Impor halaman edit
 
 class ProductVariantDetailScreen extends StatefulWidget {
   final ProductModel product;
-
   const ProductVariantDetailScreen({super.key, required this.product});
 
   @override
@@ -20,7 +20,6 @@ class _ProductVariantDetailScreenState
   @override
   void initState() {
     super.initState();
-    print(widget.product.id);
     Future.microtask(
       () => Provider.of<VariantProvider>(
         context,
@@ -38,8 +37,6 @@ class _ProductVariantDetailScreenState
       body:
           variantProvider.isLoadingProductVariants
               ? const Center(child: CircularProgressIndicator())
-              : variantProvider.errorMessage != null
-              ? Center(child: Text('Error: ${variantProvider.errorMessage}'))
               : RefreshIndicator(
                 onRefresh:
                     () => variantProvider.fetchVariantsForProduct(
@@ -55,13 +52,45 @@ class _ProductVariantDetailScreenState
                         vertical: 6,
                       ),
                       child: ListTile(
-                        title: Text('Size: ${variant.size}'),
+                        title: Text(
+                          'Size: ${variant.size}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         subtitle: Text(
                           'Stock: ${variant.stock} | Material: ${variant.material ?? 'N/A'}',
                         ),
-                        trailing: const Icon(Icons.edit_note),
+                        trailing: const Icon(
+                          Icons.edit_note,
+                          color: Colors.blue,
+                        ),
                         onTap: () {
-                          // TODO: Navigasi ke halaman edit varian
+                          // NAVIGASI KE HALAMAN EDIT
+                          Navigator.of(context)
+                              .push(
+                                MaterialPageRoute(
+                                  builder:
+                                      (_) => EditVariantScreen(
+                                        variant: variant,
+                                        productName: widget.product.name,
+                                      ),
+                                ),
+                              )
+                              .then((isSuccess) {
+                                // Setelah halaman edit ditutup, refresh data jika ada perubahan
+                                if (isSuccess == true) {
+                                  variantProvider.fetchVariantsForProduct(
+                                    widget.product.id,
+                                  );
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Variant updated successfully!',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              });
                         },
                       ),
                     );
@@ -70,6 +99,7 @@ class _ProductVariantDetailScreenState
               ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
+          // Navigasi ke halaman tambah
           Navigator.of(context)
               .push(
                 MaterialPageRoute(
@@ -81,21 +111,9 @@ class _ProductVariantDetailScreenState
                 ),
               )
               .then((isSuccess) {
-                // Blok .then() ini akan dieksekusi setelah halaman AddVariantScreen ditutup
                 if (isSuccess == true) {
-                  // Jika AddVariantScreen mengirim 'true', berarti sukses, maka refresh data
-                  Provider.of<VariantProvider>(
-                    context,
-                    listen: false,
-                  ).fetchVariantsForProduct(widget.product.id);
-
-                  // Tampilkan SnackBar di sini
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Variant added successfully!'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
+                  // Refresh juga setelah menambah varian baru
+                  variantProvider.fetchVariantsForProduct(widget.product.id);
                 }
               });
         },
